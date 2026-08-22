@@ -94,27 +94,30 @@ export default function ImmersiveHouse() {
   const videoRef = useRef(null)
   const barRef   = useRef(null)
   const rafRef   = useRef(null)
-  const targetTimeRef = useRef(0)
+  const targetTimeRef  = useRef(0)
   const currentTimeRef = useRef(0)
   const [currentIdx, setCurrentIdx] = useState(0)
   const [vidReady, setVidReady] = useState(false)
   const [vidError, setVidError] = useState(false)
-  const [progress, setProgress] = useState(0)
 
-  // Précharge complète de la vidéo avant activation
+  // Détection rapide : 'canplay' se déclenche bien plus tôt que 'canplaythrough'
   useEffect(() => {
     const vid = videoRef.current
     if (!vid) return
 
-    const handleCanPlayThrough = () => {
-      setVidReady(true)
-    }
+    const handleReady = () => setVidReady(true)
 
-    vid.addEventListener('canplaythrough', handleCanPlayThrough)
-    return () => vid.removeEventListener('canplaythrough', handleCanPlayThrough)
+    vid.addEventListener('canplay', handleReady)
+    // Filet de sécurité si l'événement ne se déclenche jamais (connexion très lente)
+    const fallback = setTimeout(() => setVidReady(true), 3000)
+
+    return () => {
+      vid.removeEventListener('canplay', handleReady)
+      clearTimeout(fallback)
+    }
   }, [])
 
-  // Tracking scroll + interpolation douce
+  // Tracking scroll + interpolation douce (rAF) pour une sync fluide
   useEffect(() => {
     const wrap = wrapRef.current
     if (!wrap) return
@@ -137,14 +140,11 @@ export default function ImmersiveHouse() {
       setCurrentIdx((cur) => (cur === idx ? cur : idx))
     }
 
-    // Boucle rAF : interpole doucement vers la position cible
     const smoothSync = () => {
       const vid = videoRef.current
       if (vid && vidReady && vid.duration > 0) {
         const diff = targetTimeRef.current - currentTimeRef.current
-        // Interpolation douce (lerp) — s'ajuste progressivement
         currentTimeRef.current += diff * 0.15
-        // Snap si très proche pour éviter les micro-oscillations
         if (Math.abs(diff) < 0.02) currentTimeRef.current = targetTimeRef.current
         vid.currentTime = currentTimeRef.current
       }
@@ -184,7 +184,7 @@ export default function ImmersiveHouse() {
           />
         )}
 
-        {/* Loader discret */}
+        {/* Loader discret pendant le chargement */}
         {!vidReady && !vidError && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 3,
