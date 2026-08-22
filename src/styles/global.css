@@ -1,0 +1,171 @@
+:root {
+  --black:     #0A0A0A;
+  --dark:      #141414;
+  --cream:     #F5F3EE;
+  --warm:      #D8D0C4;
+  --gold:      #C4A882;
+  --muted:     #6B6560;
+
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans:  'DM Sans', system-ui, sans-serif;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --nav-h: 68px;
+}
+
+@media (min-width: 768px) {
+  :root { --nav-h: 76px; }
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: auto; overflow-x: clip; -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--black);
+  color: var(--cream);
+  font-family: var(--sans);
+  font-weight: 300;
+  line-height: 1.65;
+  overflow-x: clip;
+  cursor: none;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (hover: none) { body { cursor: auto; } }
+img, video { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button { background: none; border: none; font-family: inherit; color: inherit; cursor: none; }
+@media (hover: none) { button { cursor: pointer; } }
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9990;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection { background: var(--cream); color: var(--black); }
+::-webkit-scrollbar { width: 1px; }
+::-webkit-scrollbar-track { background: var(--black); }
+::-webkit-scrollbar-thumb { background: var(--muted); }
+
+.t-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.t-body {
+  font-family: var(--sans);
+  font-size: clamp(14px, 1.2vw, 16px);
+  font-weight: 300;
+  line-height: 1.75;
+  color: var(--muted);
+}
+.t-serif-sm {
+  font-family: var(--serif);
+  font-size: clamp(18px, 2vw, 22px);
+  font-weight: 300;
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 30px;
+  border: 1px solid rgba(245,243,238,0.25);
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cream);
+  transition: border-color 0.4s var(--ease), color 0.4s var(--ease);
+  cursor: none;
+  white-space: nowrap;
+}
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+@media (hover: none) { .btn-outline { cursor: pointer; } }
+
+.btn-solid {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 30px;
+  background: var(--cream);
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--black);
+  transition: background 0.4s var(--ease), color 0.4s var(--ease);
+  cursor: none;
+  white-space: nowrap;
+}
+.btn-solid:hover { background: var(--warm); }
+@media (hover: none) { .btn-solid { cursor: pointer; } }
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+.eyebrow::before {
+  content: '';
+  display: block;
+  width: 28px;
+  height: 1px;
+  background: var(--gold);
+  flex-shrink: 0;
+}
+
+.hr { width: 100%; height: 1px; background: rgba(255,255,255,0.07); }
+.pad { padding-left: clamp(24px, 5vw, 80px); padding-right: clamp(24px, 5vw, 80px); }
+.reveal { will-change: transform, opacity; }
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE MOBILE
+   ═══════════════════════════════════════════ */
+
+/* Tablette et mobile — pas de curseur custom */
+@media (max-width: 1024px) {
+  body { cursor: auto; }
+  .btn-outline, .btn-solid { cursor: pointer; }
+}
+
+/* Mobile — boutons pleine largeur */
+@media (max-width: 640px) {
+  .btn-outline, .btn-solid {
+    width: 100%;
+    justify-content: center;
+    padding: 15px 24px;
+  }
+
+  .eyebrow { margin-bottom: 28px; }
+  .eyebrow::before { width: 20px; }
+
+  /* Amélioration lisibilité mobile */
+  body { line-height: 1.6; }
+}
+
+/* Cible tactile minimum 44px pour boutons */
+@media (hover: none) {
+  button, a { min-height: 44px; }
+  input, select, textarea {
+    font-size: 16px !important; /* évite le zoom iOS */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
