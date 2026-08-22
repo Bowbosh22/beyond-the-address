@@ -1,8 +1,4 @@
 {
-  "installCommand": "npm install --legacy-peer-deps --ignore-scripts=false",
-  "buildCommand": "chmod +x node_modules/.bin/vite && npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
   "headers": [
     {
       "source": "/(.*)",
@@ -13,7 +9,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self' https://bowbosh22.github.io https://*.vercel.app"
+          "value": "frame-ancestors *"
         }
       ]
     }
