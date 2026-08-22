@@ -93,37 +93,16 @@ export default function ImmersiveHouse() {
   const wrapRef  = useRef(null)
   const videoRef = useRef(null)
   const barRef   = useRef(null)
-  const rafRef   = useRef(null)
-  const targetTimeRef  = useRef(0)
-  const currentTimeRef = useRef(0)
   const [currentIdx, setCurrentIdx] = useState(0)
   const [vidReady, setVidReady] = useState(false)
   const [vidError, setVidError] = useState(false)
 
-  // Détection rapide : 'canplay' se déclenche bien plus tôt que 'canplaythrough'
-  useEffect(() => {
-    const vid = videoRef.current
-    if (!vid) return
-
-    const handleReady = () => setVidReady(true)
-
-    vid.addEventListener('canplay', handleReady)
-    // Filet de sécurité si l'événement ne se déclenche jamais (connexion très lente)
-    const fallback = setTimeout(() => setVidReady(true), 3000)
-
-    return () => {
-      vid.removeEventListener('canplay', handleReady)
-      clearTimeout(fallback)
-    }
-  }, [])
-
-  // Tracking scroll + interpolation douce (rAF) pour une sync fluide
   useEffect(() => {
     const wrap = wrapRef.current
     if (!wrap) return
     const N = SECTIONS.length
 
-    const updateProgress = () => {
+    const update = () => {
       const rect = wrap.getBoundingClientRect()
       const total = rect.height - window.innerHeight
       const scrolled = Math.max(0, Math.min(total, -rect.top))
@@ -131,35 +110,20 @@ export default function ImmersiveHouse() {
 
       const vid = videoRef.current
       if (vid && vidReady && vid.duration > 0) {
-        targetTimeRef.current = vid.duration * p
+        vid.currentTime = vid.duration * p
       }
-
       if (barRef.current) barRef.current.style.transform = `scaleX(${p})`
 
       const idx = Math.min(N - 1, Math.floor(p * N))
       setCurrentIdx((cur) => (cur === idx ? cur : idx))
     }
 
-    const smoothSync = () => {
-      const vid = videoRef.current
-      if (vid && vidReady && vid.duration > 0) {
-        const diff = targetTimeRef.current - currentTimeRef.current
-        currentTimeRef.current += diff * 0.15
-        if (Math.abs(diff) < 0.02) currentTimeRef.current = targetTimeRef.current
-        vid.currentTime = currentTimeRef.current
-      }
-      rafRef.current = requestAnimationFrame(smoothSync)
-    }
-
-    updateProgress()
-    rafRef.current = requestAnimationFrame(smoothSync)
-    window.addEventListener('scroll', updateProgress, { passive: true })
-    window.addEventListener('resize', updateProgress)
-
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
     return () => {
-      window.removeEventListener('scroll', updateProgress)
-      window.removeEventListener('resize', updateProgress)
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
     }
   }, [vidReady])
 
@@ -180,29 +144,9 @@ export default function ImmersiveHouse() {
               objectFit: 'cover', zIndex: 1,
               opacity: vidReady ? 1 : 0, transition: 'opacity 1.2s ease',
             }}
+            onLoadedMetadata={() => setVidReady(true)}
             onError={() => setVidError(true)}
           />
-        )}
-
-        {/* Loader discret pendant le chargement */}
-        {!vidReady && !vidError && (
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 3,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexDirection: 'column', gap: 20,
-          }}>
-            <div style={{
-              width: 30, height: 30,
-              border: '1px solid rgba(196,168,130,0.2)',
-              borderTopColor: 'var(--gold)',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-            }} />
-            <p style={{ fontFamily: 'var(--sans)', fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', color: 'var(--muted)' }}>
-              Préparation de l'expérience
-            </p>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          </div>
         )}
 
         <div style={{
