@@ -96,6 +96,24 @@ export default function ImmersiveHouse() {
   const [currentIdx, setCurrentIdx] = useState(0)
   const [vidReady, setVidReady] = useState(false)
   const [vidError, setVidError] = useState(false)
+  const [loadProgress, setLoadProgress] = useState(0)
+
+  // Suivi de la progression du chargement de la vidéo
+  useEffect(() => {
+    const vid = videoRef.current
+    if (!vid) return
+
+    const handleProgress = () => {
+      if (vid.buffered.length > 0 && vid.duration > 0) {
+        const buffered = vid.buffered.end(vid.buffered.length - 1)
+        const percent = Math.min(100, Math.round((buffered / vid.duration) * 100))
+        setLoadProgress(percent)
+      }
+    }
+
+    vid.addEventListener('progress', handleProgress)
+    return () => vid.removeEventListener('progress', handleProgress)
+  }, [])
 
   useEffect(() => {
     const wrap = wrapRef.current
@@ -134,6 +152,48 @@ export default function ImmersiveHouse() {
     <div ref={wrapRef} style={{ height: '700vh' }} aria-label="Visite immersive de la maison">
       <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: '#0A0A0A' }}>
 
+        {/* Loader — visible tant que la vidéo n'est pas totalement chargée */}
+        {!vidReady && !vidError && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 3,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexDirection: 'column', gap: 24, background: '#0A0A0A',
+          }}>
+            <div style={{
+              width: 30, height: 30,
+              border: '1px solid rgba(196,168,130,0.2)',
+              borderTopColor: 'var(--gold)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }} />
+            <p style={{
+              fontFamily: 'var(--sans)', fontSize: 10, letterSpacing: '0.3em',
+              textTransform: 'uppercase', color: 'var(--muted)', margin: 0,
+            }}>
+              Préparation de l'expérience
+            </p>
+            <div style={{
+              width: 140, height: 1,
+              background: 'rgba(196,168,130,0.15)',
+              position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', top: 0, left: 0, bottom: 0,
+                width: `${loadProgress}%`,
+                background: 'var(--gold)',
+                transition: 'width 0.3s ease',
+              }} />
+            </div>
+            <p style={{
+              fontFamily: 'var(--sans)', fontSize: 9, letterSpacing: '0.2em',
+              color: 'var(--muted)', opacity: 0.6, margin: 0,
+            }}>
+              {loadProgress}%
+            </p>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        )}
+
         {!vidError && (
           <video ref={videoRef}
             src="/assets/house-walkthrough.mp4"
@@ -144,7 +204,7 @@ export default function ImmersiveHouse() {
               objectFit: 'cover', zIndex: 1,
               opacity: vidReady ? 1 : 0, transition: 'opacity 1.2s ease',
             }}
-            onLoadedMetadata={() => setVidReady(true)}
+            onCanPlayThrough={() => setVidReady(true)}
             onError={() => setVidError(true)}
           />
         )}
