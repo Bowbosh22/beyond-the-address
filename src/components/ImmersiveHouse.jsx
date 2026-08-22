@@ -96,7 +96,61 @@ export default function ImmersiveHouse() {
   const [currentIdx, setCurrentIdx] = useState(0)
   const [vidReady, setVidReady] = useState(false)
   const [vidError, setVidError] = useState(false)
+  const [loadPercent, setLoadPercent] = useState(0)
 
+  // Précharge complète de la vidéo via fetch (blob) — permet de suivre la vraie progression
+  useEffect(() => {
+    let cancelled = false
+    const url = '/assets/house-walkthrough.mp4'
+
+    async function preload() {
+      try {
+        const response = await fetch(url)
+        if (!response.ok) throw new Error('Fetch failed')
+
+        const total = parseInt(response.headers.get('content-length') || '0', 10)
+        const reader = response.body.getReader()
+        const chunks = []
+        let received = 0
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          if (cancelled) return
+          chunks.push(value)
+          received += value.length
+          if (total > 0) {
+            setLoadPercent(Math.min(99, Math.round((received / total) * 100)))
+          }
+        }
+
+        if (cancelled) return
+
+        // Assemble en blob et attache au <video>
+        const blob = new Blob(chunks, { type: 'video/mp4' })
+        const blobUrl = URL.createObjectURL(blob)
+        const vid = videoRef.current
+        if (vid) {
+          vid.src = blobUrl
+          vid.load()
+          const onReady = () => {
+            setLoadPercent(100)
+            setTimeout(() => setVidReady(true), 400) // petite pause pour laisser voir 100%
+            vid.removeEventListener('loadedmetadata', onReady)
+          }
+          vid.addEventListener('loadedmetadata', onReady)
+        }
+      } catch (err) {
+        console.warn('Video preload failed:', err)
+        if (!cancelled) setVidError(true)
+      }
+    }
+
+    preload()
+    return () => { cancelled = true }
+  }, [])
+
+  // Tracking scroll (actif seulement une fois la vidéo prête)
   useEffect(() => {
     const wrap = wrapRef.current
     if (!wrap) return
@@ -134,19 +188,102 @@ export default function ImmersiveHouse() {
     <div ref={wrapRef} style={{ height: '700vh' }} aria-label="Visite immersive de la maison">
       <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: '#0A0A0A' }}>
 
+        {/* LOADER PREMIUM — s'affiche pendant le préchargement */}
+        {!vidReady && !vidError && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 10,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            gap: 32,
+            background: '#0A0A0A',
+          }}>
+            {/* Petit trait doré animé */}
+            <div style={{
+              width: 32, height: 1,
+              background: 'var(--gold)',
+              opacity: 0.6,
+            }} />
+
+            {/* Texte élégant */}
+            <div style={{ textAlign: 'center' }}>
+              <p style={{
+                fontFamily: 'var(--serif)',
+                fontSize: 'clamp(22px, 3vw, 30px)',
+                fontStyle: 'italic',
+                color: 'var(--cream)',
+                margin: 0,
+                marginBottom: 12,
+              }}>
+                Préparation de l'expérience
+              </p>
+              <p style={{
+                fontFamily: 'var(--sans)',
+                fontSize: 10,
+                letterSpacing: '0.3em',
+                textTransform: 'uppercase',
+                color: 'var(--muted)',
+                margin: 0,
+              }}>
+                Chargement de la visite immersive
+              </p>
+            </div>
+
+            {/* Barre de progression */}
+            <div style={{
+              width: 240, maxWidth: '70vw',
+              height: 1,
+              background: 'rgba(196,168,130,0.12)',
+              position: 'relative', overflow: 'hidden',
+              marginTop: 8,
+            }}>
+              <div style={{
+                position: 'absolute', top: 0, left: 0, bottom: 0,
+                width: `${loadPercent}%`,
+                background: 'var(--gold)',
+                transition: 'width 0.4s ease',
+              }} />
+            </div>
+
+            {/* Pourcentage */}
+            <p style={{
+              fontFamily: 'var(--sans)',
+              fontSize: 11,
+              letterSpacing: '0.25em',
+              color: 'var(--warm)',
+              margin: 0,
+              opacity: 0.7,
+              minHeight: 16,
+            }}>
+              {loadPercent}%
+            </p>
+          </div>
+        )}
+
+        {/* VIDÉO — invisible tant que non prête */}
         {!vidError && (
           <video ref={videoRef}
-            src="/assets/house-walkthrough.mp4"
             poster="/assets/house-poster.jpg"
-            muted playsInline preload="auto" aria-hidden="true"
+            muted playsInline preload="none" aria-hidden="true"
             style={{
               position: 'absolute', inset: 0, width: '100%', height: '100%',
               objectFit: 'cover', zIndex: 1,
               opacity: vidReady ? 1 : 0, transition: 'opacity 1.2s ease',
             }}
-            onLoadedMetadata={() => setVidReady(true)}
             onError={() => setVidError(true)}
           />
+        )}
+
+        {/* Message d'erreur (fallback) */}
+        {vidError && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 3,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#0A0A0A',
+          }}>
+            <p style={{ fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--muted)' }}>
+              La vidéo n'a pas pu être chargée.
+            </p>
+          </div>
         )}
 
         <div style={{
